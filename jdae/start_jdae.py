@@ -119,6 +119,7 @@ class JDAE(object):
         oauth = self.cm.get_oauth()
         req_int = self.cm.get_sleep_interval_requests()
         list_formats = self.cm.get_listformats()
+        embed_metadata = self.cm.get_embed_metadata()
 
         # Print boot sequence and play audio
         if not self.cm.get_skip_intro():
@@ -144,8 +145,32 @@ class JDAE(object):
             "outtmpl": outtmpl,
             "listformats": list_formats,
             "sleep_interval_requests": req_int,
+            "ffmpeg_location": "/usr/sbin",  # Explicit path to ffmpeg binaries
             # 'progress_hooks': [self.my_hook],
         }
+        
+        # Add metadata embedding options if enabled
+        if embed_metadata:
+            # Prefer mp3 format when metadata embedding is enabled for better compatibility
+            # First try mp3, then fall back to best audio excluding opus
+            ytdl_opts["format"] = "ba[ext=mp3]/ba[acodec!*=opus]"
+            ytdl_opts["writethumbnail"] = True
+            ytdl_opts["postprocessors"] = [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "0",  # 0 means best quality (VBR)
+                },
+                {
+                    "key": "FFmpegMetadata",
+                    "add_metadata": True,
+                },
+                {
+                    "key": "EmbedThumbnail",
+                    "already_have_thumbnail": False,
+                },
+            ]
+            print("\nMetadata embedding enabled - converting to mp3 with album art and ID3 tags")
 
         # Time to get started
         print("\nEngine ready - good luck")

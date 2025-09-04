@@ -136,3 +136,14 @@ class ConfigManager(object):
         if val in ["True", "true"]:
             return True
         return False
+
+    def get_embed_metadata(self):
+        """
+        Returns embed_metadata bool value for enabling metadata and thumbnail embedding
+        """
+        val = self.parser[self.GC_SETTINGS].get("embed_metadata", "True")
+
+        # Convert string to bool value
+        if val in ["True", "true"]:
+            return True
+        return False
