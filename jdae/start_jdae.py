@@ -16,10 +16,6 @@ from jdae.src.configmanager import ConfigManager
 import pause
 import yt_dlp
 
-with contextlib.redirect_stdout(None):
-    # This imports it with no stdout so we do not see the hello message
-    import pygame
-
 
 class JDAE(object):
     # Title to print before logo
@@ -122,22 +118,13 @@ class JDAE(object):
         if d["status"] == "finished":
             print("Done downloading, now converting ...")
 
-    def boot_sequence(self, audio):
+    def boot_sequence(self):
         """
-        Prints title + logo, and plays startup audio
+        Prints title + logo
         """
         print()
         print(self.PRGM_TITLE)
         print(logos.BOOT_LOGO_80)
-
-        # Use pygame to play audio across platforms
-        # Do not call pygame.init(), we don't need all that
-        pygame.mixer.init()
-        pygame.mixer.music.load(audio)
-        pygame.mixer.music.play()
-        while pygame.mixer.get_busy():
-            time.sleep(1)
-
         print("\nStarting automated archive client")
 
     def download_from_url(self, ytdl, url):
@@ -210,7 +197,6 @@ class JDAE(object):
         """
         # Read settings and url list from config files
         url_list = self.cm.get_url_list()
-        audio = self.cm.get_boot_audio()
         output_dir = self.cm.get_output_dir()
         archive_wait_time = self.cm.get_archive_freq()
         oauth = self.cm.get_oauth()
@@ -218,9 +204,9 @@ class JDAE(object):
         list_formats = self.cm.get_listformats()
         embed_metadata = self.cm.get_embed_metadata()
 
-        # Print boot sequence and play audio
+        # Print boot sequence
         if not self.cm.get_skip_intro():
-            self.boot_sequence(audio)
+            self.boot_sequence()
 
         # Print list of pages to user that will be processed
         print("\nMonitoring the following pages:")

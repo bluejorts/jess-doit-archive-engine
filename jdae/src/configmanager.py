@@ -13,7 +13,6 @@ class ConfigManager(object):
     URL_CONFIG = "url_list.ini"
 
     # Resource base paths
-    AUDIO_RESOURCE = "jdae.sounds"
     CONFIG_RESOURCE = "jdae.config"
 
     # General config sections
@@ -45,11 +44,6 @@ class ConfigManager(object):
         # Fall back to package resource
         return self._get_path(self.CONFIG_RESOURCE, filename)
 
-    def _get_audio_path(self, filename):
-        """
-        Get path of audio file in package
-        """
-        return self._get_path(self.AUDIO_RESOURCE, filename)
 
     def _get_path(self, resource, filename):
         """
@@ -76,16 +70,6 @@ class ConfigManager(object):
 
         return url_list
 
-    def get_boot_audio(self):
-        """
-        Returns full path to audio file named in general config
-        """
-        # Get file name from config
-        audio_filename = self.parser[self.GC_SETTINGS]["boot_audio"]
-
-        # Resolve path and return
-        audio_path = self._get_audio_path(audio_filename)
-        return audio_path
 
     def get_skip_intro(self):
         """
