@@ -1,0 +1,14 @@
+.git
+.gitignore
+*.pyc
+__pycache__
+.DS_Store
+*.egg-info
+dist/
+build/
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+config/
+archive/

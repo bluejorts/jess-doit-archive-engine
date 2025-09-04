@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  jdae:
+    image: ghcr.io/bluejorts/jess-doit-archive-engine:latest
+    container_name: jdae-archiver
+    volumes:
+      # Mount config directory - edit gen_config.ini and url_list.ini here
+      - ./config:/config
+      # Mount archive output directory - change path as needed
+      - ./archive:/archive
+      # Optional: mount a different archive path from gen_config.ini
+      # - /mnt/y/soundcloud_archive:/mnt/y/soundcloud_archive
+    restart: unless-stopped
+    environment:
+      # Optional: Override settings via environment variables
+      - JDAE_CONFIG_PATH=/config

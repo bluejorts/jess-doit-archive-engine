@@ -1,5 +1,6 @@
 import configparser
 import importlib.resources as import_resources
+import os
 
 
 class ConfigManager(object):
@@ -32,8 +33,16 @@ class ConfigManager(object):
 
     def _get_config_path(self, filename):
         """
-        Get path to config file in package
+        Get path to config file - check environment variable first, then package
         """
+        # Check if running in Docker with mounted config
+        config_dir = os.environ.get('JDAE_CONFIG_PATH')
+        if config_dir:
+            config_path = os.path.join(config_dir, filename)
+            if os.path.exists(config_path):
+                return config_path
+        
+        # Fall back to package resource
         return self._get_path(self.CONFIG_RESOURCE, filename)
 
     def _get_audio_path(self, filename):
