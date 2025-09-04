@@ -1,9 +1,12 @@
 # Standard imports
 import configparser
 import contextlib
+import json
+import os
 import time
 import traceback
 import importlib.resources as import_resources
+from datetime import datetime
 
 # Package imports
 import jdae.src.logos as logos
@@ -61,6 +64,56 @@ class JDAE(object):
         Constructor for JDAE
         """
         self.cm = ConfigManager()
+        self.archive_history = {}
+        self.history_file = None
+
+    def load_archive_history(self):
+        """
+        Load the archive history from JSON file
+        """
+        if os.path.exists(self.history_file):
+            try:
+                with open(self.history_file, 'r') as f:
+                    self.archive_history = json.load(f)
+                print(f"Loaded archive history with {len(self.archive_history)} entries")
+            except Exception as e:
+                print(f"Warning: Could not load archive history: {e}")
+                self.archive_history = {}
+        else:
+            print("Starting with empty archive history")
+            self.archive_history = {}
+
+    def save_archive_history(self):
+        """
+        Save the archive history to JSON file
+        """
+        try:
+            os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+            with open(self.history_file, 'w') as f:
+                json.dump(self.archive_history, f, indent=2, sort_keys=True)
+        except Exception as e:
+            print(f"Warning: Could not save archive history: {e}")
+
+    def add_to_history(self, url, info):
+        """
+        Add a downloaded item to the archive history
+        """
+        item_id = info.get('id', url)
+        self.archive_history[item_id] = {
+            'title': info.get('title', 'Unknown'),
+            'url': url,
+            'uploader': info.get('uploader', 'Unknown'),
+            'timestamp': datetime.now().isoformat(),
+            'duration': info.get('duration', 0),
+            'filesize': info.get('filesize', 0)
+        }
+        self.save_archive_history()
+
+    def is_archived(self, item_id):
+        """
+        Check if an item has already been archived
+        """
+        return item_id in self.archive_history
 
     def my_hook(self, d):
         """
@@ -94,9 +147,53 @@ class JDAE(object):
         Skips media that has already been downloaded
         """
         try:
-            ytdl.download([url])
-        except:
-            print(f"\nError occurred on page: {url}\n")
+            # First extract info to check what needs downloading
+            info = ytdl.extract_info(url, download=False)
+            
+            if info is None:
+                return
+            
+            # Check if it's a playlist or single track
+            if 'entries' in info:
+                # It's a playlist
+                new_items = []
+                skipped_count = 0
+                
+                for entry in info['entries']:
+                    if entry and not self.is_archived(entry.get('id', '')):
+                        new_items.append(entry)
+                    else:
+                        skipped_count += 1
+                
+                if skipped_count > 0:
+                    print(f"Skipping {skipped_count} already archived items")
+                
+                if new_items:
+                    print(f"Found {len(new_items)} new items to download")
+                    # Download new items
+                    for entry in new_items:
+                        self.current_url = entry.get('url', url)
+                        self.current_info = entry
+                        try:
+                            ytdl.download([entry['url']])
+                            self.add_to_history(entry['url'], entry)
+                        except Exception as e:
+                            print(f"Error downloading {entry.get('title', 'item')}: {e}")
+                else:
+                    print("All items already archived, nothing to download")
+            else:
+                # It's a single track
+                item_id = info.get('id', url)
+                if self.is_archived(item_id):
+                    print(f"Already archived: {info.get('title', url)}")
+                else:
+                    self.current_url = url
+                    self.current_info = info
+                    ytdl.download([url])
+                    self.add_to_history(url, info)
+                    
+        except Exception as e:
+            print(f"\nError occurred on page: {url}\n{e}\n")
 
     def extract_info_url(self, ytdl, url):
         """
@@ -133,6 +230,10 @@ class JDAE(object):
         # Construct output path template
         outtmpl = f"{output_dir}/archive/%(playlist)s/{self.OUTPUT_FILE_TMPL}"
         print(f"\n######\nARCHIVE OUTPUT DIRECTORY: {outtmpl}")
+        
+        # Initialize archive history file path
+        self.history_file = os.path.join(output_dir, "archive_history.json")
+        self.load_archive_history()
 
         if self.cm.get_hq_en():
             # Set header for HD Soundcould Downloads
@@ -145,15 +246,12 @@ class JDAE(object):
             "outtmpl": outtmpl,
             "listformats": list_formats,
             "sleep_interval_requests": req_int,
-            "ffmpeg_location": "/usr/sbin",  # Explicit path to ffmpeg binaries
-            # 'progress_hooks': [self.my_hook],
+            "progress_hooks": [self.my_hook],
         }
         
         # Add metadata embedding options if enabled
         if embed_metadata:
-            # Prefer mp3 format when metadata embedding is enabled for better compatibility
-            # First try mp3, then fall back to best audio excluding opus
-            ytdl_opts["format"] = "ba[ext=mp3]/ba[acodec!*=opus]"
+            # Convert to mp3 format when metadata embedding is enabled for better compatibility
             ytdl_opts["writethumbnail"] = True
             ytdl_opts["postprocessors"] = [
                 {
