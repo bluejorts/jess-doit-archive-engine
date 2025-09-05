@@ -49,6 +49,9 @@ ENV HIGH_QUALITY_ENABLE=false
 # Required environment variables (must be set at runtime):
 # URL_LIST - Comma-separated list of URLs to archive
 # 
+# Optional: Place a cookies.txt file in /archive directory for authenticated downloads
+# Export cookies from your browser using a cookies.txt extension
+#
 # Optional environment variables:
 # SOUNDCLOUD_OAUTH - OAuth token for high quality SoundCloud downloads
 # OUTPUT_DIR - Archive output directory (default: /archive)

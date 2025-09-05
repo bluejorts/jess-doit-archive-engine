@@ -236,6 +236,13 @@ class JDAE(object):
         # Initialize archive history file path
         self.history_file = os.path.join(output_dir, "archive_history.json")
         self.load_archive_history()
+        
+        # Check for cookies.txt file in archive directory
+        cookies_file = os.path.join(output_dir, "cookies.txt")
+        if os.path.exists(cookies_file):
+            print(f"Found cookies.txt - will use for authenticated downloads")
+        else:
+            cookies_file = None
 
         if self.cm.get_hq_en():
             # Set header for HD Soundcould Downloads
@@ -250,6 +257,10 @@ class JDAE(object):
             "sleep_interval_requests": req_int,
             "progress_hooks": [self.my_hook],
         }
+        
+        # Add cookies file if present
+        if cookies_file:
+            ytdl_opts["cookiefile"] = cookies_file
         
         # Add metadata embedding options if enabled
         if embed_metadata:
