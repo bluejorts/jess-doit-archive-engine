@@ -51,7 +51,8 @@ fi\n\
 # Override the config path for the application\n\
 export JDAE_CONFIG_PATH=/config\n\
 cd /app\n\
-python -m jdae.start_jdae' > /app/entrypoint.sh && \
+# Use exec to ensure signals are properly forwarded to the Python process\n\
+exec python -m jdae.start_jdae' > /app/entrypoint.sh && \
     chmod +x /app/entrypoint.sh
 
 # Set environment variables

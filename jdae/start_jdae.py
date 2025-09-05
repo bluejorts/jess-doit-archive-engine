@@ -3,6 +3,8 @@ import configparser
 import contextlib
 import json
 import os
+import signal
+import sys
 import time
 import traceback
 import importlib.resources as import_resources
@@ -13,7 +15,6 @@ import jdae.src.logos as logos
 from jdae.src.configmanager import ConfigManager
 
 # 3rd Party imports
-import pause
 import yt_dlp
 
 
@@ -62,7 +63,23 @@ class JDAE(object):
         self.cm = ConfigManager()
         self.archive_history = {}
         self.history_file = None
+        self.shutdown_requested = False
+        
+        # Set up signal handlers for graceful shutdown
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
 
+    def signal_handler(self, signum, frame):
+        """
+        Handle shutdown signals gracefully
+        """
+        print(f"\n\nReceived signal {signum}. Shutting down gracefully...")
+        self.shutdown_requested = True
+        # Save any pending history
+        if hasattr(self, 'archive_history') and self.history_file:
+            self.save_archive_history()
+        sys.exit(0)
+    
     def load_archive_history(self):
         """
         Load the archive history from JSON file
@@ -261,9 +278,11 @@ class JDAE(object):
         time.sleep(2)
         try:
             with yt_dlp.YoutubeDL(ytdl_opts) as ytdl:
-                while True:
+                while not self.shutdown_requested:
                     # For every url in the url_list.ini run yt_dlp operation
                     for url in url_list:
+                        if self.shutdown_requested:
+                            break
                         print(f"\n######\n[URL] -- {url}\n")
 
                         # Download all media from url
@@ -271,15 +290,19 @@ class JDAE(object):
 
                         # List all downloads available from url
                         # self.extract_info_url(ytdl, url)
+                    
+                    if self.shutdown_requested:
+                        break
+                        
                     print(
                         f"\n######\nArchive pass completed. Will check again in {archive_wait_time}s ({archive_wait_time/3600}h)"
                     )
 
-                    # This is better than time.sleep for large durations
-                    # If archive_wait_time is 6 hours and the PC goes into sleep mode after 30 min
-                    # time.sleep will still have 5h 30m on the sleep timer
-                    # This method ensures that if 6 hours pass in real world time that the wait will be over
-                    pause.seconds(archive_wait_time)
+                    # Use shorter sleep intervals to check for shutdown
+                    # This allows for quicker response to shutdown signals
+                    wait_end = time.time() + archive_wait_time
+                    while time.time() < wait_end and not self.shutdown_requested:
+                        time.sleep(1)  # Check every second for shutdown
         except:
             traceback.print_exc()
             print("\nArchive engine stopped")
