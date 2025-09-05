@@ -181,6 +181,14 @@ class JDAE(object):
                     "preferredquality": "0",  # 0 means best quality (VBR)
                 },
                 {
+                    "key": "MetadataParser",
+                    # Sync album_artist with artist field (which uses artist/creator/uploader priority)
+                    # This ensures both use the track's original artist, not playlist creator
+                    "actions": [
+                        (r".*", {"album_artist": "%(artist|creator|uploader|uploader_id)s"}),
+                    ],
+                },
+                {
                     "key": "FFmpegMetadata",
                     "add_metadata": True,
                 },
