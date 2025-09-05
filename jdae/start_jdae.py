@@ -167,51 +167,8 @@ class JDAE(object):
         Skips media that has already been downloaded
         """
         try:
-            # First extract info to check what needs downloading
-            info = ytdl.extract_info(url, download=False)
-            
-            if info is None:
-                return
-            
-            # Check if it's a playlist or single track
-            if 'entries' in info:
-                # It's a playlist
-                new_items = []
-                skipped_count = 0
-                
-                for entry in info['entries']:
-                    if entry and not self.is_archived(entry.get('id', '')):
-                        new_items.append(entry)
-                    else:
-                        skipped_count += 1
-                
-                if skipped_count > 0:
-                    print(f"Skipping {skipped_count} already archived items")
-                
-                if new_items:
-                    print(f"Found {len(new_items)} new items to download")
-                    # Download new items
-                    for entry in new_items:
-                        self.current_url = entry.get('url', url)
-                        self.current_info = entry
-                        try:
-                            ytdl.download([entry['url']])
-                            self.add_to_history(entry['url'], entry)
-                        except Exception as e:
-                            print(f"Error downloading {entry.get('title', 'item')}: {e}")
-                else:
-                    print("All items already archived, nothing to download")
-            else:
-                # It's a single track
-                item_id = info.get('id', url)
-                if self.is_archived(item_id):
-                    print(f"Already archived: {info.get('title', url)}")
-                else:
-                    self.current_url = url
-                    self.current_info = info
-                    ytdl.download([url])
-                    self.add_to_history(url, info)
-                    
+            # Let yt-dlp handle everything including duplicate detection
+            ytdl.download([url])
         except Exception as e:
             print(f"\nError occurred on page: {url}\n{e}\n")
 
@@ -275,6 +232,8 @@ class JDAE(object):
             "listformats": list_formats,
             "sleep_interval_requests": req_int,
             "progress_hooks": [self.my_hook],
+            "download_archive": os.path.join(output_dir, "download_archive.txt"),  # Track downloaded videos
+            "ignoreerrors": True,  # Continue on download errors
         }
         
         # Add cookies file if present
