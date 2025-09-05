@@ -5,28 +5,16 @@ services:
     image: ghcr.io/bluejorts/jess-doit-archive-engine:latest
     container_name: jdae-archiver
     volumes:
-      # Mount config directory - edit gen_config.ini and url_list.ini here
-      - ./config:/config
-      # Mount archive output directory - change path as needed
+      # Mount archive output directory
       - ./archive:/archive
-      # Optional: mount a different archive path from gen_config.ini
-      # - /mnt/y/soundcloud_archive:/mnt/y/soundcloud_archive
     restart: unless-stopped
+    env_file:
+      # Load environment variables from .env file
+      - .env
     environment:
-      # Config directory (set automatically by entrypoint)
-      - JDAE_CONFIG_PATH=/config
+      # You can override .env values here if needed
+      # Example: Set a different output directory
+      # - OUTPUT_DIR=/archive/soundcloud
       
-      # Optional: Override settings via environment variables
-      # These override values in gen_config.ini
-      
-      # SoundCloud OAuth token for HQ downloads (keep this secret!)
-      # - SOUNDCLOUD_OAUTH=OAuth 2-305668-100628564-XXXXXXXXX
-      
-      # Enable high quality downloads (requires valid OAuth)
-      # - HIGH_QUALITY_ENABLE=true
-      
-      # Override output directory
-      # - OUTPUT_DIR=/archive
-      
-      # Enable/disable metadata embedding
-      # - EMBED_METADATA=true
+      # Example: Run more frequently for testing
+      # - ARCHIVE_FREQUENCY_HOURS=1

@@ -23,8 +23,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create non-root user and directories
 RUN useradd -m -u 1000 archiver && \
-    mkdir -p /config /archive /app && \
-    chown -R archiver:archiver /config /archive /app
+    mkdir -p /archive /app && \
+    chown -R archiver:archiver /archive /app
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/archiver/.local
@@ -33,44 +33,37 @@ COPY --from=builder /root/.local /home/archiver/.local
 WORKDIR /app
 COPY --chown=archiver:archiver . .
 
-# Copy default config files to a template directory
-RUN mkdir -p /app/config-template && \
-    cp /app/jdae/config/*.ini /app/config-template/ && \
-    chown -R archiver:archiver /app/config-template
-
-# Create startup script to handle config initialization
-RUN echo '#!/bin/bash\n\
-# Copy default configs if they dont exist\n\
-if [ ! -f /config/gen_config.ini ]; then\n\
-    echo "Initializing config files..."\n\
-    cp /app/config-template/*.ini /config/\n\
-    echo "Config files created in /config/"\n\
-    echo "Please edit /config/gen_config.ini and /config/url_list.ini before restarting"\n\
-    exit 0\n\
-fi\n\
-# Override the config path for the application\n\
-export JDAE_CONFIG_PATH=/config\n\
-cd /app\n\
-# Use exec to ensure signals are properly forwarded to the Python process\n\
-exec python -m jdae.start_jdae' > /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
 # Set environment variables
 ENV PATH=/home/archiver/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 
-# Optional environment variable overrides (can be set at runtime):
+# Default environment variables (can be overridden at runtime)
+ENV OUTPUT_DIR=/archive
+ENV ARCHIVE_FREQUENCY_HOURS=6
+ENV EMBED_METADATA=true
+ENV SKIP_INTRO=false
+ENV RATE_LIMIT_SEC=3
+ENV LIST_FORMATS=false
+ENV HIGH_QUALITY_ENABLE=false
+
+# Required environment variables (must be set at runtime):
+# URL_LIST - Comma-separated list of URLs to archive
+# 
+# Optional environment variables:
 # SOUNDCLOUD_OAUTH - OAuth token for high quality SoundCloud downloads
-# HIGH_QUALITY_ENABLE - Enable HQ downloads (true/false)
-# OUTPUT_DIR - Archive output directory (overrides config)
-# EMBED_METADATA - Enable metadata embedding (true/false)
-# JDAE_CONFIG_PATH - Config directory path (set by entrypoint)
+# OUTPUT_DIR - Archive output directory (default: /archive)
+# ARCHIVE_FREQUENCY_HOURS - Hours between archive checks (default: 6)
+# EMBED_METADATA - Enable metadata embedding (default: true)
+# SKIP_INTRO - Skip intro logo (default: false)
+# RATE_LIMIT_SEC - Seconds between requests (default: 3)
+# LIST_FORMATS - Debug available formats (default: false)
+# HIGH_QUALITY_ENABLE - Enable HQ downloads (default: false)
 
 # Switch to non-root user
 USER archiver
 
-# Define volumes for config and archive
-VOLUME ["/config", "/archive"]
+# Define volume for archive
+VOLUME ["/archive"]
 
-# Run the startup script
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Run the archive engine directly
+ENTRYPOINT ["python", "-m", "jdae.start_jdae"]

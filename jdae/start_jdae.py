@@ -7,7 +7,6 @@ import signal
 import sys
 import time
 import traceback
-import importlib.resources as import_resources
 from datetime import datetime
 
 # Package imports
