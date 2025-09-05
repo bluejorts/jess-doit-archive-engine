@@ -181,14 +181,6 @@ class JDAE(object):
                     "preferredquality": "0",  # 0 means best quality (VBR)
                 },
                 {
-                    "key": "MetadataParser",
-                    # Sync album_artist with artist field (which uses artist/creator/uploader priority)
-                    # This ensures both use the track's original artist, not playlist creator
-                    "actions": [
-                        (r".*", {"album_artist": "%(artist|creator|uploader|uploader_id)s"}),
-                    ],
-                },
-                {
                     "key": "FFmpegMetadata",
                     "add_metadata": True,
                 },
@@ -243,9 +235,11 @@ class JDAE(object):
                     wait_end = time.time() + archive_wait_time
                     while time.time() < wait_end and not self.shutdown_requested:
                         time.sleep(1)  # Check every second for shutdown
-        except:
+        except Exception as e:
+            print(f"\nError: {e}")
             traceback.print_exc()
             print("\nArchive engine stopped")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
