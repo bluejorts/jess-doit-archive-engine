@@ -100,9 +100,20 @@ class JDAE(object):
         Save the archive history to JSON file
         """
         try:
-            os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+            dir_path = os.path.dirname(self.history_file)
+            os.makedirs(dir_path, exist_ok=True)
+            # Set directory permissions to be accessible
+            try:
+                os.chmod(dir_path, 0o777)  # rwxrwxrwx for directories
+            except:
+                pass
             with open(self.history_file, 'w') as f:
                 json.dump(self.archive_history, f, indent=2, sort_keys=True)
+            # Set history file permissions
+            try:
+                os.chmod(self.history_file, 0o666)  # rw-rw-rw- for files
+            except:
+                pass
         except Exception as e:
             print(f"Warning: Could not save archive history: {e}")
 
@@ -129,10 +140,16 @@ class JDAE(object):
 
     def my_hook(self, d):
         """
-        Hook for finished downloads
+        Hook for finished downloads - set file permissions
         """
         if d["status"] == "finished":
             print("Done downloading, now converting ...")
+            # Set world read/write permissions on the downloaded file
+            if 'filename' in d:
+                try:
+                    os.chmod(d['filename'], 0o666)  # rw-rw-rw-
+                except Exception as e:
+                    print(f"Warning: Could not set permissions on {d['filename']}: {e}")
 
     def boot_sequence(self):
         """
@@ -282,8 +299,22 @@ class JDAE(object):
                     "key": "EmbedThumbnail",
                     "already_have_thumbnail": False,
                 },
+                {
+                    "key": "Exec",
+                    "exec_cmd": "chmod 666 {}",  # Set world read/write after processing
+                    "when": "after_move"
+                },
             ]
             print("\nMetadata embedding enabled - converting to mp3 with album art and ID3 tags")
+        else:
+            # Even without metadata, ensure proper permissions
+            ytdl_opts["postprocessors"] = [
+                {
+                    "key": "Exec",
+                    "exec_cmd": "chmod 666 {}",  # Set world read/write after download
+                    "when": "after_move"
+                },
+            ]
 
         # Time to get started
         print("\nEngine ready - good luck")
