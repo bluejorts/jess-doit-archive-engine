@@ -166,10 +166,13 @@ class JDAE(object):
             "ignoreerrors": True,  # Continue on download errors
             # Map metadata fields for better organization
             "parse_metadata": [
-                # Map album_artist to match artist field (uses artist/creator/uploader priority)
-                "%(artist|creator|uploader|uploader_id)s:%(album_artist)s",
-                # Map playlist name to album field if downloading from a playlist
-                "%(playlist|playlist_title)s:%(album)s",
+                # Artist is always the track uploader/creator
+                "%(artist|creator|uploader|uploader_id)s:%(artist)s",
+                # Album is playlist name (if from playlist) or existing album field
+                "%(playlist|playlist_title|album)s:%(album)s",
+                # Album artist: Use playlist_uploader if available (may not work on SoundCloud),
+                # otherwise use channel (YouTube) or fall back to track uploader
+                "%(playlist_uploader|channel|uploader)s:%(album_artist)s",
             ],
         }
         
