@@ -164,6 +164,8 @@ class JDAE(object):
             "progress_hooks": [self.my_hook],
             "download_archive": os.path.join(output_dir, "download_archive.txt"),  # Track downloaded videos
             "ignoreerrors": True,  # Continue on download errors
+            # Map album_artist to match artist field (uses artist/creator/uploader priority)
+            "parse_metadata": ["%(artist|creator|uploader|uploader_id)s:%(album_artist)s"],
         }
         
         # Add cookies file if present
@@ -179,14 +181,6 @@ class JDAE(object):
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "mp3",
                     "preferredquality": "0",  # 0 means best quality (VBR)
-                },
-                {
-                    "key": "MetadataParser",
-                    # Sync album_artist with artist field (which uses artist/creator/uploader priority)
-                    # This ensures both use the track's original artist, not playlist creator
-                    "actions": [
-                        (r".*", {"album_artist": "%(artist|creator|uploader|uploader_id)s"}),
-                    ],
                 },
                 {
                     "key": "FFmpegMetadata",
