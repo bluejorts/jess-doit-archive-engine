@@ -13,5 +13,20 @@ services:
       # - /mnt/y/soundcloud_archive:/mnt/y/soundcloud_archive
     restart: unless-stopped
     environment:
-      # Optional: Override settings via environment variables
+      # Config directory (set automatically by entrypoint)
       - JDAE_CONFIG_PATH=/config
+      
+      # Optional: Override settings via environment variables
+      # These override values in gen_config.ini
+      
+      # SoundCloud OAuth token for HQ downloads (keep this secret!)
+      # - SOUNDCLOUD_OAUTH=OAuth 2-305668-100628564-XXXXXXXXX
+      
+      # Enable high quality downloads (requires valid OAuth)
+      # - HIGH_QUALITY_ENABLE=true
+      
+      # Override output directory
+      # - OUTPUT_DIR=/archive
+      
+      # Enable/disable metadata embedding
+      # - EMBED_METADATA=true

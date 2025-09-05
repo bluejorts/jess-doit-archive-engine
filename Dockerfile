@@ -59,6 +59,13 @@ exec python -m jdae.start_jdae' > /app/entrypoint.sh && \
 ENV PATH=/home/archiver/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 
+# Optional environment variable overrides (can be set at runtime):
+# SOUNDCLOUD_OAUTH - OAuth token for high quality SoundCloud downloads
+# HIGH_QUALITY_ENABLE - Enable HQ downloads (true/false)
+# OUTPUT_DIR - Archive output directory (overrides config)
+# EMBED_METADATA - Enable metadata embedding (true/false)
+# JDAE_CONFIG_PATH - Config directory path (set by entrypoint)
+
 # Switch to non-root user
 USER archiver
 

@@ -85,7 +85,13 @@ class ConfigManager(object):
     def get_output_dir(self):
         """
         Returns base directory for archive output
+        Checks environment variable first, then falls back to config file
         """
+        # Check for environment variable override
+        env_dir = os.environ.get('OUTPUT_DIR')
+        if env_dir:
+            return env_dir
+            
         return self.parser[self.GC_SETTINGS]["output_dir"]
 
     def get_archive_freq(self):
@@ -98,17 +104,30 @@ class ConfigManager(object):
     def get_oauth(self):
         """
         Returns Soundcloud OAuth value to enable HQ downloads
+        Checks environment variable first, then falls back to config file
         """
+        # Check for environment variable override
+        env_oauth = os.environ.get('SOUNDCLOUD_OAUTH')
+        if env_oauth:
+            return env_oauth
+        
+        # Fall back to config file
         return self.parser[self.GC_SETTINGS]["oauth"]
 
     def get_hq_en(self):
         """
         Returns the True/False value for High Quality Enable
+        Checks environment variable first, then falls back to config file
         """
-        val = self.parser[self.GC_SETTINGS]["high_quality_enable"]
+        # Check for environment variable override
+        env_hq = os.environ.get('HIGH_QUALITY_ENABLE')
+        if env_hq:
+            val = env_hq
+        else:
+            val = self.parser[self.GC_SETTINGS]["high_quality_enable"]
 
         # Convert string to bool value
-        if val in ["True", "true"]:
+        if val in ["True", "true", "1", "yes"]:
             return True
         return False
 
@@ -133,10 +152,16 @@ class ConfigManager(object):
     def get_embed_metadata(self):
         """
         Returns embed_metadata bool value for enabling metadata and thumbnail embedding
+        Checks environment variable first, then falls back to config file
         """
-        val = self.parser[self.GC_SETTINGS].get("embed_metadata", "True")
+        # Check for environment variable override
+        env_embed = os.environ.get('EMBED_METADATA')
+        if env_embed:
+            val = env_embed
+        else:
+            val = self.parser[self.GC_SETTINGS].get("embed_metadata", "True")
 
         # Convert string to bool value
-        if val in ["True", "true"]:
+        if val in ["True", "true", "1", "yes"]:
             return True
         return False
