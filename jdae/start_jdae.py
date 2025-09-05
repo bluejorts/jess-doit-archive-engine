@@ -1,13 +1,11 @@
 # Standard imports
 import configparser
 import contextlib
-import json
 import os
 import signal
 import sys
 import time
 import traceback
-from datetime import datetime
 
 # Package imports
 import jdae.src.logos as logos
@@ -60,8 +58,6 @@ class JDAE(object):
         Constructor for JDAE
         """
         self.cm = ConfigManager()
-        self.archive_history = {}
-        self.history_file = None
         self.shutdown_requested = False
         
         # Set up signal handlers for graceful shutdown
@@ -74,69 +70,7 @@ class JDAE(object):
         """
         print(f"\n\nReceived signal {signum}. Shutting down gracefully...")
         self.shutdown_requested = True
-        # Save any pending history
-        if hasattr(self, 'archive_history') and self.history_file:
-            self.save_archive_history()
         sys.exit(0)
-    
-    def load_archive_history(self):
-        """
-        Load the archive history from JSON file
-        """
-        if os.path.exists(self.history_file):
-            try:
-                with open(self.history_file, 'r') as f:
-                    self.archive_history = json.load(f)
-                print(f"Loaded archive history with {len(self.archive_history)} entries")
-            except Exception as e:
-                print(f"Warning: Could not load archive history: {e}")
-                self.archive_history = {}
-        else:
-            print("Starting with empty archive history")
-            self.archive_history = {}
-
-    def save_archive_history(self):
-        """
-        Save the archive history to JSON file
-        """
-        try:
-            dir_path = os.path.dirname(self.history_file)
-            os.makedirs(dir_path, exist_ok=True)
-            # Set directory permissions to be accessible
-            try:
-                os.chmod(dir_path, 0o777)  # rwxrwxrwx for directories
-            except:
-                pass
-            with open(self.history_file, 'w') as f:
-                json.dump(self.archive_history, f, indent=2, sort_keys=True)
-            # Set history file permissions
-            try:
-                os.chmod(self.history_file, 0o666)  # rw-rw-rw- for files
-            except:
-                pass
-        except Exception as e:
-            print(f"Warning: Could not save archive history: {e}")
-
-    def add_to_history(self, url, info):
-        """
-        Add a downloaded item to the archive history
-        """
-        item_id = info.get('id', url)
-        self.archive_history[item_id] = {
-            'title': info.get('title', 'Unknown'),
-            'url': url,
-            'uploader': info.get('uploader', 'Unknown'),
-            'timestamp': datetime.now().isoformat(),
-            'duration': info.get('duration', 0),
-            'filesize': info.get('filesize', 0)
-        }
-        self.save_archive_history()
-
-    def is_archived(self, item_id):
-        """
-        Check if an item has already been archived
-        """
-        return item_id in self.archive_history
 
     def my_hook(self, d):
         """
@@ -209,10 +143,6 @@ class JDAE(object):
         outtmpl = f"{output_dir}/%(playlist,playlist_title,uploader,channel|tracks)s/{self.OUTPUT_FILE_TMPL}"
         print(f"\n######\nARCHIVE OUTPUT DIRECTORY: {output_dir}")
         
-        # Initialize archive history file path
-        self.history_file = os.path.join(output_dir, "archive_history.json")
-        self.load_archive_history()
-        
         # Check for cookies.txt file in archive directory
         cookies_file = os.path.join(output_dir, "cookies.txt")
         if os.path.exists(cookies_file):
@@ -249,6 +179,14 @@ class JDAE(object):
                     "key": "FFmpegExtractAudio",
                     "preferredcodec": "mp3",
                     "preferredquality": "0",  # 0 means best quality (VBR)
+                },
+                {
+                    "key": "MetadataParser",
+                    # Sync album_artist with artist field (which uses artist/creator/uploader priority)
+                    # This ensures both use the track's original artist, not playlist creator
+                    "actions": [
+                        (r".*", {"album_artist": "%(artist|creator|uploader|uploader_id)s"}),
+                    ],
                 },
                 {
                     "key": "FFmpegMetadata",
