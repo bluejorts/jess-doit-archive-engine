@@ -164,8 +164,13 @@ class JDAE(object):
             "progress_hooks": [self.my_hook],
             "download_archive": os.path.join(output_dir, "download_archive.txt"),  # Track downloaded videos
             "ignoreerrors": True,  # Continue on download errors
-            # Map album_artist to match artist field (uses artist/creator/uploader priority)
-            "parse_metadata": ["%(artist|creator|uploader|uploader_id)s:%(album_artist)s"],
+            # Map metadata fields for better organization
+            "parse_metadata": [
+                # Map album_artist to match artist field (uses artist/creator/uploader priority)
+                "%(artist|creator|uploader|uploader_id)s:%(album_artist)s",
+                # Map playlist name to album field if downloading from a playlist
+                "%(playlist|playlist_title)s:%(album)s",
+            ],
         }
         
         # Add cookies file if present
