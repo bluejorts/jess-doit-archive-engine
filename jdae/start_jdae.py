@@ -22,7 +22,7 @@ class JDAE(object):
     PRGM_TITLE = "Jess' Archive Engine"
 
     # Naming template for files output by downloader
-    OUTPUT_FILE_TMPL = "%(title)s-%(id)s.%(ext)s"
+    OUTPUT_FILE_TMPL = "%(title)s-%(uploader)s.%(ext)s"
 
     # Logger helper class
     class YTDLLogger(object):
@@ -230,8 +230,10 @@ class JDAE(object):
             print(f" - {url}")
 
         # Construct output path template
-        outtmpl = f"{output_dir}/archive/%(playlist)s/{self.OUTPUT_FILE_TMPL}"
-        print(f"\n######\nARCHIVE OUTPUT DIRECTORY: {outtmpl}")
+        # Use playlist/album name if available, otherwise use 'tracks' for individual tracks
+        # The playlist_title fallback ensures we get a folder name even for single tracks
+        outtmpl = f"{output_dir}/%(playlist,playlist_title,uploader,channel|tracks)s/{self.OUTPUT_FILE_TMPL}"
+        print(f"\n######\nARCHIVE OUTPUT DIRECTORY: {output_dir}")
         
         # Initialize archive history file path
         self.history_file = os.path.join(output_dir, "archive_history.json")
