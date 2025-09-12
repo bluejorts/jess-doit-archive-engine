@@ -127,6 +127,7 @@ class JDAE(object):
         req_int = self.cm.get_sleep_interval_requests()
         list_formats = self.cm.get_listformats()
         embed_metadata = self.cm.get_embed_metadata()
+        album_artist_override = self.cm.get_album_artist_override()
 
         # Print boot sequence
         if not self.cm.get_skip_intro():
@@ -154,6 +155,22 @@ class JDAE(object):
             # Set header for HD Soundcould Downloads
             yt_dlp.utils.std_headers["Authorization"] = oauth
 
+        # Build parse_metadata list based on configuration
+        parse_metadata = [
+            # Artist is always the track uploader/creator
+            "%(artist|creator|uploader|uploader_id)s:%(artist)s",
+            # Album is playlist name (if from playlist) or existing album field
+            "%(playlist|playlist_title|album)s:%(album)s",
+        ]
+        
+        # Add album artist mapping
+        if album_artist_override:
+            # Use the override value for album artist
+            parse_metadata.append(f".*:%(album_artist)s:{album_artist_override}")
+        else:
+            # Use playlist creator or fall back to track uploader
+            parse_metadata.append("%(playlist_uploader|channel|uploader)s:%(album_artist)s")
+        
         # Options for yt_dlp instance
         ytdl_opts = {
             "format": "ba[acodec!*=opus]",
@@ -164,16 +181,7 @@ class JDAE(object):
             "progress_hooks": [self.my_hook],
             "download_archive": os.path.join(output_dir, "download_archive.txt"),  # Track downloaded videos
             "ignoreerrors": True,  # Continue on download errors
-            # Map metadata fields for better organization
-            "parse_metadata": [
-                # Artist is always the track uploader/creator
-                "%(artist|creator|uploader|uploader_id)s:%(artist)s",
-                # Album is playlist name (if from playlist) or existing album field
-                "%(playlist|playlist_title|album)s:%(album)s",
-                # Album artist: Use playlist_uploader if available (may not work on SoundCloud),
-                # otherwise use channel (YouTube) or fall back to track uploader
-                "%(playlist_uploader|channel|uploader)s:%(album_artist)s",
-            ],
+            "parse_metadata": parse_metadata,
         }
         
         # Add cookies file if present

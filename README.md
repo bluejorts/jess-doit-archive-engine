@@ -76,6 +76,7 @@ All configuration is done through environment variables:
 - `LIST_FORMATS` - Debug available formats (default: `false`)
 - `HIGH_QUALITY_ENABLE` - Enable high quality downloads (default: `false`)
 - `SOUNDCLOUD_OAUTH` - OAuth token for SoundCloud HQ downloads
+- `ALBUM_ARTIST_OVERRIDE` - Override album artist for all downloads (e.g., `"Emmathyst"`)
 
 ### SoundCloud High Quality Downloads
 

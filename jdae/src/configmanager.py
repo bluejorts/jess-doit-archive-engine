@@ -83,3 +83,10 @@ class ConfigManager(object):
         """
         val = os.environ.get('EMBED_METADATA', 'true').lower()
         return val in ['true', '1', 'yes']
+
+    def get_album_artist_override(self):
+        """
+        Returns album artist override value if set
+        If set, this value will be used as album artist for all downloads
+        """
+        return os.environ.get('ALBUM_ARTIST_OVERRIDE', '')

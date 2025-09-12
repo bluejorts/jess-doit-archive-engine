@@ -61,6 +61,7 @@ ENV HIGH_QUALITY_ENABLE=false
 # RATE_LIMIT_SEC - Seconds between requests (default: 3)
 # LIST_FORMATS - Debug available formats (default: false)
 # HIGH_QUALITY_ENABLE - Enable HQ downloads (default: false)
+# ALBUM_ARTIST_OVERRIDE - Override album artist for all downloads (e.g., "Emmathyst")
 
 # Switch to non-root user
 USER archiver
