@@ -218,6 +218,8 @@ class JDAE(object):
         parse_metadata = [
             # Artist is always the track uploader/creator
             "%(artist|creator|uploader|uploader_id)s:%(artist)s",
+            # Map playlist name to album field
+            "%(playlist|playlist_title)s:%(album)s",
             # Map description to comment field
             "%(description)s:%(comment)s",
             # Map the original webpage URL to author URL field
