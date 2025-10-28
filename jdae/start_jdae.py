@@ -1,6 +1,7 @@
 # Standard imports
 import configparser
 import contextlib
+import glob
 import os
 import signal
 import sys
@@ -13,6 +14,8 @@ from jdae.src.configmanager import ConfigManager
 
 # 3rd Party imports
 import yt_dlp
+from mutagen.id3 import ID3, TPE2, COMM
+from mutagen.mp3 import MP3
 
 
 class JDAE(object):
@@ -115,6 +118,62 @@ class JDAE(object):
         except:
             print(f"\nError occurred on page: {url}\n")
 
+    def fix_id3_tags(self, output_dir, album_artist_override, since_time=None):
+        """
+        Fix ID3 tags on MP3 files to ensure Album Artist is set correctly.
+        This runs outside of yt-dlp to ensure the tags are properly set.
+
+        Args:
+            output_dir: Base directory to search for MP3 files
+            album_artist_override: Value to set for Album Artist field
+            since_time: Only process files modified after this timestamp (optional)
+        """
+        if not album_artist_override:
+            return
+
+        print(f"\nFixing ID3 tags - ensuring Album Artist is set to: {album_artist_override}")
+
+        # Find all MP3 files in the output directory
+        mp3_pattern = os.path.join(output_dir, "**", "*.mp3")
+        mp3_files = glob.glob(mp3_pattern, recursive=True)
+
+        files_processed = 0
+        files_updated = 0
+
+        for mp3_file in mp3_files:
+            # Skip if we have a time filter and file is too old
+            if since_time and os.path.getmtime(mp3_file) < since_time:
+                continue
+
+            try:
+                # Load the MP3 file
+                audio = MP3(mp3_file, ID3=ID3)
+
+                # Check if ID3 tags exist, create if not
+                if audio.tags is None:
+                    audio.add_tags()
+
+                # Get current album artist value
+                current_album_artist = None
+                if 'TPE2' in audio.tags:
+                    current_album_artist = str(audio.tags['TPE2'])
+
+                # Only update if different
+                if current_album_artist != album_artist_override:
+                    # Set the Album Artist (TPE2 frame)
+                    audio.tags['TPE2'] = TPE2(encoding=3, text=album_artist_override)
+                    audio.save()
+                    files_updated += 1
+                    print(f"  Updated: {os.path.basename(mp3_file)}")
+
+                files_processed += 1
+
+            except Exception as e:
+                print(f"  Warning: Could not update ID3 tags for {mp3_file}: {e}")
+
+        if files_processed > 0:
+            print(f"\nID3 tag fixing complete: Processed {files_processed} files, updated {files_updated} files")
+
     def main(self):
         """
         Main JDAE program logic. Starts up and runs archive automation.
@@ -161,6 +220,10 @@ class JDAE(object):
             "%(artist|creator|uploader|uploader_id)s:%(artist)s",
             # Album is playlist name (if from playlist) or existing album field
             "%(playlist|playlist_title|album)s:%(album)s",
+            # Map description to comment field
+            "%(description)s:%(comment)s",
+            # Map the original webpage URL to author URL field
+            "%(webpage_url)s:%(author_url)s",
         ]
         
         # Add album artist mapping
@@ -229,6 +292,9 @@ class JDAE(object):
         try:
             with yt_dlp.YoutubeDL(ytdl_opts) as ytdl:
                 while not self.shutdown_requested:
+                    # Track the start time of this archive pass
+                    pass_start_time = time.time()
+
                     # For every url in the url_list.ini run yt_dlp operation
                     for url in url_list:
                         if self.shutdown_requested:
@@ -240,10 +306,14 @@ class JDAE(object):
 
                         # List all downloads available from url
                         # self.extract_info_url(ytdl, url)
-                    
+
                     if self.shutdown_requested:
                         break
-                        
+
+                    # Fix ID3 tags on newly downloaded files
+                    # Only process files modified since the start of this pass
+                    self.fix_id3_tags(output_dir, album_artist_override, since_time=pass_start_time)
+
                     print(
                         f"\n######\nArchive pass completed. Will check again in {archive_wait_time}s ({archive_wait_time/3600}h)"
                     )
